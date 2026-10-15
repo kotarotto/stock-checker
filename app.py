@@ -11,44 +11,32 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown('<div class="main-header">📈 Stock Checker Pro</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-text">銘柄コードまたは社名を入力して詳細な株価・財務情報を取得します。</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-text">銘柄コードを入力して詳細な株価・財務情報を取得します。</div>', unsafe_allow_html=True)
 
-# 入力フォーム
-query = st.text_input("銘柄コードまたは社名 (例: 7203, トヨタ)")
+query = st.text_input("銘柄コード (例: 7203)")
 
 if query:
     code = query.strip()
-    
-    # 社名や数字の調整（日本株は .T をつける）
-    if "トヨタ" in code: code = "7203"
-    elif "ソニー" in code: code = "6758"
-    elif "ソフトバンク" in code: code = "9434"
-    
-    # 数字のみの場合は末尾に .T を付与してYahoo Financeから取得
-    if code.isdigit():
-        ticker_symbol = f"{code}.T"
-    else:
-        ticker_symbol = code
+    ticker_symbol = f"{code}.T" if code.isdigit() else code
 
     with st.spinner('データを取得中...'):
         try:
             ticker = yf.Ticker(ticker_symbol)
             inf = ticker.info
             
-            # データの取得
             name = inf.get('longName', inf.get('shortName', f"銘柄コード: {code}"))
-            current_price = inf.get('currentPrice', inf.get('regularMarketPrice', None))
+            current_price = inf.get('currentPrice', inf.get('regularMarketPrice', inf.get('previousClose', None)))
             market = inf.get('exchange', '東証')
             
             per = inf.get('trailingPE', None)
             pbr = inf.get('priceToBook', None)
             roe = inf.get('returnOnEquity', None)
             if roe is not None:
-                roe = round(roe * 100, 2)  # パーセント表示に変換
+                roe = round(roe * 100, 2)
                 
             dividend_yield = inf.get('dividendYield', None)
             if dividend_yield is not None:
-                dividend_yield = round(dividend_yield * 100, 2) # パーセント表示
+                dividend_yield = round(dividend_yield * 100, 2)
 
             if current_price:
                 st.subheader(f"🏢 {name} ({code}) の株価・株式情報")
@@ -58,7 +46,6 @@ if query:
                 st.markdown("### 上場市場")
                 st.write(market)
 
-                # 指標を4カラムで綺麗に表示
                 col1, col2, col3, col4 = st.columns(4)
                 col1.metric("PER (株価収益率)", f"{per:.2f}倍" if per else "---")
                 col2.metric("PBR (株価純資産倍率)", f"{pbr:.2f}倍" if pbr else "---")
@@ -67,4 +54,4 @@ if query:
             else:
                 st.error("データを取得できませんでした。正しい銘柄コードを入力してください。")
         except Exception as e:
-            st.error(f"データの取得中にエラーが発生しました: {e}")
+            st.error(f"エラーが発生しました: {e}")
