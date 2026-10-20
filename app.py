@@ -124,30 +124,16 @@ with tab1:
 # =========================================================
 with tab2:
     st.subheader("📋 条件からの逆引きスクリーニング")
-    st.caption("条件に一致する銘柄をリストアップします。")
+    st.caption("設定した条件に一致する銘柄をリストアップします。")
 
     sc_col1, sc_col2 = st.columns(2)
-    s_per = sc_col1.number_input("スクリーニング PER上限", value=15.0, key="s_per")
-    s_yield = sc_col2.number_input("スクリーニング 配当下限(%)", value=3.0, key="s_yield")
+    s_per = sc_col1.number_input("PER上限", value=15.0, key="s_per")
+    s_yield = sc_col2.number_input("配当下限(%)", value=3.0, key="s_yield")
 
     if st.button("🚀 スクリーニング実行"):
-        # サンプルデータベース
         universe = [
-            {"銘柄コード": "7203", "銘柄名": "トヨタ自動車", "市場": "東証プライム", "PER": 14.2, "PBR": 1.15, "配当利回り(%)": 3.2},
-            {"銘柄コード": "9434", "銘柄名": "ソフトバンク", "市場": "東証プライム", "PER": 13.5, "PBR": 4.2, "配当利回り(%)": 4.5},
-            {"銘柄コード": "7267", "銘柄名": "本田技研工業", "市場": "東証プライム", "PER": 11.8, "PBR": 0.56, "配当利回り(%)": 3.8},
-            {"銘柄コード": "4452", "銘柄名": "花王", "市場": "東証プライム", "PER": 18.0, "PBR": 2.10, "配当利回り(%)": 3.1}
+            {"コード": "7203", "銘柄名": "トヨタ", "PER": 14.2, "配当(%)": 3.2},
+            {"コード": "9434", "銘柄名": "ソフトバンク", "PER": 13.5, "配当(%)": 4.5},
+            {"コード": "7267", "銘柄名": "ホンダ", "PER": 11.8, "配当(%)": 3.8},
+            {"コード": "4452", "銘柄名": "花王", "PER": 18.0, "配当(%)": 3.1}
         ]
-        
-        # 条件フィルタリング
-        filtered = [
-            item for item in universe 
-            if item["PER"] <= s_per and item["配当利回り(%)"] >= s_yield
-        ]
-
-        if filtered:
-            df = pd.DataFrame(filtered)
-            st.success(f"条件に一致する銘柄が {len(df)} 件見つかりました！")
-            st.dataframe(df, use_container_width=True)
-        else:
-            st.warning("条件に一致する銘柄はありませんでした。条件をゆるめて再実行してください。")
