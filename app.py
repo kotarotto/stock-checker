@@ -1,8 +1,18 @@
 import streamlit as st
 import pandas as pd
+import os
 
 st.set_page_config(page_title="Stock Checker Pro", layout="wide")
-st.title("📈 Stock Checker Pro")
+st.title("📈 Stock Checker Pro (本格スクリーニング版)")
+
+# 保存されたCSVデータがあれば読み込む、なければ空のリスト
+@st.cache_data
+def load_stock_data():
+    if os.path.exists("stock_data.csv"):
+        return pd.read_csv("stock_data.csv")
+    return pd.DataFrame(columns=["コード", "銘柄名", "PER", "PBR", "ROE", "配当"])
+
+df_all = load_stock_data()
 
 if "fav" not in st.session_state:
     st.session_state.fav = ["7203", "4452"]
@@ -26,13 +36,19 @@ t1, t2 = st.tabs(["個別分析", "スクリーニング"])
 with t1:
     q = st.text_input("銘柄コード", value="7203")
     st.subheader(f"🏢 銘柄: {q}")
-    st.metric("株価", "3,094 円")
-    st.write("- PER基準: ✅ クリア")
-    st.write("- PBR基準: ✅ クリア")
+    match = df_all[df_all["コード"].astype(str) == str(q)]
+    if not match.empty:
+        r = match.iloc[0]
+        st.metric("株価データ（取得済）", f"PER: {r['PER']}倍 / PBR: {r['PBR']}倍")
+        st.write(f"- 銘柄名: {r['銘柄名']}")
+        st.write(f"- ROE: {r['ROE']}%")
+        st.write(f"- 配当利回り: {r['配当']}%")
+    else:
+        st.info("データがまだありません。スクリーニングタブでデータを更新するか、銘柄を追加してください。")
 
 with t2:
-    st.subheader("📋 逆引き（上位10銘柄）")
-    m = st.selectbox("市場", ["東証プライム", "東証スタンダード", "東証グロース"])
+    st.subheader("📋 本格スクリーニング")
+    st.write(f"現在保持しているデータ数: {len(df_all)} 銘柄")
     
     c1, c2, c3, c4 = st.columns(4)
     tp = c1.number_input("PER上限", value=15.0, key="tp")
@@ -40,40 +56,20 @@ with t2:
     tre = c3.number_input("ROE下限", value=8.0, key="tre")
     tyl = c4.number_input("配当下限", value=3.0, key="tyl")
 
-    if st.button("実行"):
-        d = {
-            "東証プライム": [
-                {"コード": "7203", "銘柄名": "トヨタ", "PER": 14.2, "PBR": 1.15, "ROE": 10.2, "配当": 3.2},
-                {"コード": "7267", "銘柄名": "ホンダ", "PER": 11.8, "PBR": 0.56, "ROE": 8.4, "配当": 3.8},
-                {"コード": "8306", "銘柄名": "三菱UFJ", "PER": 10.5, "PBR": 0.85, "ROE": 8.2, "配当": 3.0},
-                {"コード": "8316", "銘柄名": "三井住友", "PER": 10.2, "PBR": 0.80, "ROE": 9.0, "配当": 3.5},
-                {"コード": "8058", "銘柄名": "三菱商事", "PER": 11.0, "PBR": 1.20, "ROE": 12.5, "配当": 3.4},
-                {"コード": "8031", "銘柄名": "三井物産", "PER": 10.8, "PBR": 1.10, "ROE": 13.0, "配当": 3.6},
-                {"コード": "9432", "銘柄名": "NTT", "PER": 12.5, "PBR": 1.40, "ROE": 11.0, "配当": 3.3},
-                {"コード": "8001", "銘柄名": "伊藤忠", "PER": 11.5, "PBR": 1.35, "ROE": 14.2, "配当": 3.3},
-                {"コード": "8591", "銘柄名": "オリックス", "PER": 11.2, "PBR": 0.95, "ROE": 8.8, "配当": 3.7},
-                {"コード": "2914", "銘柄名": "JT", "PER": 13.8, "PBR": 1.45, "ROE": 15.1, "配当": 4.8}
-            ],
-            "東証スタンダード": [
-                {"コード": "1812", "銘柄名": "鹿島建設", "PER": 10.5, "PBR": 0.80, "ROE": 8.0, "配当": 4.1},
-                {"コード": "5991", "銘柄名": "日本発条", "PER": 9.5, "PBR": 0.65, "ROE": 7.5, "配当": 3.5},
-                {"コード": "8584", "銘柄名": "ジャックス", "PER": 9.0, "PBR": 0.60, "ROE": 7.0, "配当": 4.0},
-                {"コード": "7184", "銘柄名": "富山第一", "PER": 8.5, "PBR": 0.40, "ROE": 5.5, "配当": 3.5},
-                {"コード": "4208", "銘柄名": "UBE", "PER": 12.0, "PBR": 0.70, "ROE": 6.5, "配当": 3.0}
-            ],
-            "東証グロース": [
-                {"コード": "9216", "銘柄名": "ビーウィズ", "PER": 15.0, "PBR": 2.20, "ROE": 18.0, "配当": 2.5},
-                {"コード": "6035", "銘柄名": "アイ・アール", "PER": 17.5, "PBR": 2.80, "ROE": 15.0, "配当": 1.8},
-                {"コード": "4343", "銘柄名": "イオンF", "PER": 20.0, "PBR": 2.50, "ROE": 10.0, "配当": 1.2}
-            ]
-        }
+    if st.button("スクリーニング実行") and not df_all.empty:
+        mch = df_all[
+            (df_all["PER"] <= tp) & 
+            (df_all["PBR"] <= tpr) & 
+            (df_all["ROE"] >= tre) & 
+            (df_all["配当"] >= tyl)
+        ]
+        top10 = mch.sort_values(by="配当", ascending=False).head(10)
         
-        p = d.get(m, [])
-        mch = [x for x in p if x["PER"] <= tp and x["PBR"] <= tpr and x["ROE"] >= tre and x["配当"] >= tyl]
-        top10 = sorted(mch, key=lambda x: x["配当"], reverse=True)[:10]
-        
-        if top10:
-            df = pd.DataFrame(top10)
-            df.index = range(1, len(df) + 1)
-            df.index.name = "順位"
-            st.success(f"
+        if not top10.empty:
+            res_df = top10.reset_index(drop=True)
+            res_df.index = range(1, len(res_df) + 1)
+            res_df.index.name = "順位"
+            st.success(f"条件に一致する {len(res_df)} 銘柄を抽出しました！")
+            st.dataframe(res_df, use_container_width=True)
+        else:
+            st.warning("条件に一致する銘柄はありませんでした。")
