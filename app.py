@@ -44,10 +44,10 @@ with tab1:
     with col_param:
         st.markdown("**🎯 個別判定用の基準条件設定**")
         c1, c2, c3, c4 = st.columns(4)
-        target_per = c1.number_input("PER上限", value=15.0, step=0.5)
-        target_pbr = c2.number_input("PBR上限", value=1.5, step=0.1)
-        target_roe = c3.number_input("ROE下限", value=8.0, step=0.5)
-        target_yield = c4.number_input("配当利回り下限", value=3.0, step=0.1)
+        target_per = c1.number_input("PER上限", value=15.0, step=0.5, key="t_per")
+        target_pbr = c2.number_input("PBR上限", value=1.5, step=0.1, key="t_pbr")
+        target_roe = c3.number_input("ROE下限", value=8.0, step=0.5, key="t_roe")
+        target_yield = c4.number_input("配当利回り下限", value=3.0, step=0.1, key="t_yield")
 
     if query:
         code = query.strip()
@@ -72,6 +72,7 @@ with tab1:
                 price = hist['Close'].iloc[-1]
                 per_v = 14.2 if code == "7203" else 15.0
                 pbr_v = 1.15 if code == "7203" else 1.2
+                roe_v = 10.2 if code == "7203" else 9.0
                 yield_v = 3.2 if code == "7203" else 3.0
 
                 st.subheader(f"🏢 {d_name} ({code})")
@@ -111,10 +112,10 @@ with tab1:
                 e5.metric("⑤ 適正株価", "★ 4 (適正)")
 
                 st.subheader("📌 個人基準クリア判定")
-                st.write(f"- **PER基準 ({target_per}倍以下)**: ✅ クリア")
-                st.write(f"- **PBR基準 ({target_pbr}倍以下)**: ✅ クリア")
-                st.write(f"- **ROE基準 ({target_roe}%以上)**: ✅ クリア")
-                st.write(f"- **配当利回り基準 ({target_yield}%以上)**: ✅ クリア")
+                st.write(f"- **PER基準 ({target_per}倍以下)**: {'✅ クリア' if per_v <= target_per else '❌ 未達成'}")
+                st.write(f"- **PBR基準 ({target_pbr}倍以下)**: {'✅ クリア' if pbr_v <= target_pbr else '❌ 未達成'}")
+                st.write(f"- **ROE基準 ({target_roe}%以上)**: {'✅ クリア' if roe_v >= target_roe else '❌ 未達成'}")
+                st.write(f"- **配当利回り基準 ({target_yield}%以上)**: {'✅ クリア' if yield_v >= target_yield else '❌ 未達成'}")
 
         except Exception as e:
             st.error(f"エラー: {e}")
@@ -124,16 +125,33 @@ with tab1:
 # =========================================================
 with tab2:
     st.subheader("📋 条件からの逆引きスクリーニング")
-    st.caption("設定した条件に一致する銘柄をリストアップします。")
+    st.caption("個別判定と同じ 4つの基準（PER・PBR・ROE・配当利回り）を使って銘柄を絞り込みます。")
 
-    sc_col1, sc_col2 = st.columns(2)
-    s_per = sc_col1.number_input("PER上限", value=15.0, key="s_per")
-    s_yield = sc_col2.number_input("配当下限(%)", value=3.0, key="s_yield")
+    sc1, sc2, sc3, sc4 = st.columns(4)
+    s_per = sc1.number_input("PER上限", value=15.0, step=0.5, key="s_per")
+    s_pbr = sc2.number_input("PBR上限", value=1.5, step=0.1, key="s_pbr")
+    s_roe = sc3.number_input("ROE下限(%)", value=8.0, step=0.5, key="s_roe")
+    s_yield = sc4.number_input("配当下限(%)", value=3.0, step=0.1, key="s_yield")
 
     if st.button("🚀 スクリーニング実行"):
+        # 4つの指標を持ったサンプルデータベース
         universe = [
-            {"コード": "7203", "銘柄名": "トヨタ", "PER": 14.2, "配当(%)": 3.2},
-            {"コード": "9434", "銘柄名": "ソフトバンク", "PER": 13.5, "配当(%)": 4.5},
-            {"コード": "7267", "銘柄名": "ホンダ", "PER": 11.8, "配当(%)": 3.8},
-            {"コード": "4452", "銘柄名": "花王", "PER": 18.0, "配当(%)": 3.1}
+            {"コード": "7203", "銘柄名": "トヨタ自動車", "市場": "東証プライム", "PER": 14.2, "PBR": 1.15, "ROE(%)": 10.2, "配当(%)": 3.2},
+            {"コード": "9434", "銘柄名": "ソフトバンク", "市場": "東証プライム", "PER": 13.5, "PBR": 4.20, "ROE(%)": 20.5, "配当(%)": 4.5},
+            {"コード": "7267", "銘柄名": "本田技研工業", "市場": "東証プライム", "PER": 11.8, "PBR": 0.56, "ROE(%)": 8.4, "配当(%)": 3.8},
+            {"コード": "4452", "銘柄名": "花王", "市場": "東証プライム", "PER": 18.0, "PBR": 2.10, "ROE(%)": 9.1, "配当(%)": 3.1},
+            {"コード": "9432", "銘柄名": "日本電信電話", "市場": "東証プライム", "PER": 12.5, "PBR": 1.40, "ROE(%)": 11.0, "配当(%)": 3.3}
         ]
+        
+        # 4つの条件すべてでフィルタリング
+        filtered = [
+            item for item in universe 
+            if item["PER"] <= s_per and item["PBR"] <= s_pbr and item["ROE(%)"] >= s_roe and item["配当(%)"] >= s_yield
+        ]
+
+        if filtered:
+            df = pd.DataFrame(filtered)
+            st.success(f"条件に一致する銘柄が {len(df)} 件見つかりました！")
+            st.dataframe(df, use_container_width=True)
+        else:
+            st.warning("すべての条件に一致する銘柄はありませんでした。条件（PBR上限やROE下限など）を少し調整してみてください。")
