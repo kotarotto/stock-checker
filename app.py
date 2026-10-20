@@ -62,6 +62,21 @@ with tab1:
 
     if query:
         code = query.strip()
+        
+        # 社名・コードの対応辞書
+        company_names = {
+            "7203": "トヨタ自動車",
+            "6758": "ソニーグループ",
+            "9434": "ソフトバンク",
+            "4452": "花王",
+            "7267": "本田技研工業",
+            "9432": "日本電信電話 (NTT)",
+            "8306": "三菱UFJフィナンシャル・グループ",
+            "8316": "三井住友フィナンシャルグループ",
+            "8058": "三菱商事",
+            "8031": "三井物産"
+        }
+
         if "トヨタ" in code: code = "7203"
         elif "ソニー" in code: code = "6758"
         elif "ソフトバンク" in code: code = "9434"
@@ -70,6 +85,7 @@ with tab1:
         elif "NTT" in code: code = "9432"
 
         ticker_code = f"{code}.T" if code.isdigit() and len(code) == 4 else code
+        disp_name = company_names.get(code, f"銘柄コード: {code}")
         
         try:
             with st.spinner("データを高速取得中..."):
@@ -81,13 +97,14 @@ with tab1:
             else:
                 current_price = hist['Close'].iloc[-1]
                 
-                # --- 基本指標（安全なデフォルト値・モック補正） ---
                 market_name = "東証プライム"
-                mock_per = 14.2 if code == "7203" else (16.5 if code == "7267" else 15.0)
-                mock_pbr = 1.15 if code == "7203" else (0.56 if code == "7267" else 1.2)
-                mock_yield = 3.2 if code == "7203" else (3.8 if code == "7267" else 3.0)
+                mock_per = 14.2 if code == "7203" else (16.5 if code == "7267" else (13.5 if code == "9434" else 15.0))
+                mock_pbr = 1.15 if code == "7203" else (0.56 if code == "7267" else (4.2 if code == "9434" else 1.2))
+                mock_yield = 3.2 if code == "7203" else (3.8 if code == "7267" else (4.5 if code == "9434" else 3.0))
 
-                st.subheader(f"🏢 銘柄コード: {code}")
+                # 社名付きでヘッダー表示
+                st.subheader(f"🏢 {disp_name} ({code})")
+                
                 m1, m2, m3, m4, m5 = st.columns(5)
                 m1.metric("現在株価", f"{current_price:,.1f} 円")
                 m2.metric("上場市場", market_name)
@@ -134,38 +151,4 @@ with tab1:
                 col_e1.metric("① AI総合判断", f"★ {eval_total} / 5")
                 col_e2.metric("② テクニカル", f"★ {eval_tech} / 5")
                 col_e3.metric("③ ファンダ客観", f"★ {eval_funda} / 5")
-                col_e4.metric("④ 配当評価", f"★ {eval_yield} / 5")
-                col_e5.metric("⑤ 適正株価判定", eval_fair.split(' ')[0])
-
-                st.subheader("📌 個人基準クリア判定")
-                st.write(f"- **PER基準 ({target_per}倍以下)**: ✅ クリア（実績: {mock_per}倍）")
-                st.write(f"- **PBR基準 ({target_pbr}倍以下)**: ✅ クリア（実績: {mock_pbr}倍）")
-                st.write(f"- **ROE基準 ({target_roe}%以上)**: ✅ クリア（実績: 9.5%）")
-                st.write(f"- **配当利回り基準 ({target_yield}%以上)**: ✅ クリア（実績: {mock_yield}%）")
-
-        except Exception as e:
-            st.error(f"エラーが発生しました: {e}")
-
-# =========================================================
-# TAB 2: 条件からの逆引きスクリーニング
-# =========================================================
-with tab2:
-    st.subheader("📋 条件からの逆引きスクリーニング")
-    st.caption("設定したフィルター条件に適合する銘柄をリストアップします。")
-
-    col_s1, col_s2, col_s3, col_s4 = st.columns(4)
-    s_per = col_s1.number_input("スクリーニング PER上限", value=15.0)
-    s_pbr = col_s2.number_input("スクリーニング PBR上限", value=1.2)
-    s_roe = col_s3.number_input("スクリーニング ROE下限", value=8.0)
-    s_yield = col_s4.number_input("スクリーニング 配当利回り下限", value=3.0)
-
-    if st.button("🚀 スクリーニングを実行"):
-        sample_results = [
-            {"銘柄コード": "7203", "銘柄名": "トヨタ自動車", "市場": "東証プライム", "PER(倍)": 14.2, "PBR(倍)": 1.15, "ROE(%)": 10.2, "配当利回り(%)": 3.2},
-            {"銘柄コード": "7267", "銘柄名": "本田技研工業", "市場": "東証プライム", "PER(倍)": 16.5, "PBR(倍)": 0.56, "ROE(%)": 8.4, "配当利回り(%)": 3.8},
-            {"銘柄コード": "4452", "銘柄名": "花王", "市場": "東証プライム", "PER(倍)": 18.0, "PBR(倍)": 2.1, "ROE(%)": 9.1, "配当利回り(%)": 3.1},
-            {"銘柄コード": "9434", "銘柄名": "ソフトバンク", "市場": "東証プライム", "PER(倍)": 13.5, "PBR(倍)": 4.2, "ROE(%)": 20.5, "配当利回り(%)": 4.5}
-        ]
-        df_res = pd.DataFrame(sample_results)
-        st.success(f"条件に適合する銘柄が {len(df_res)} 件見つかりました！")
-        st.dataframe(df_res, use_container_width=True)
+                col_e4.metric("④ 配当評価", f"★ {eval
