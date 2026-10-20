@@ -29,7 +29,7 @@ if st.sidebar.button("お気に入りに追加"):
 
 st.sidebar.write("---")
 st.sidebar.write("登録済み銘柄:")
-for fav in st.sidebar.favorites:
+for fav in list(st.session_state.favorites):
     col_f1, col_f2 = st.sidebar.columns([3, 1])
     col_f1.write(f"・ **{fav}**")
     if col_f2.button("削除", key=f"del_{fav}"):
@@ -69,7 +69,7 @@ def clean_financial_data(info):
     # 配当利回り (yfinanceの単位異常バグ修正)
     div_yield = info.get("dividendYield")
     if div_yield is not None:
-        if div_yield > 1.0:  # 例: 3.94 または 394 などの異常値対策
+        if div_yield > 1.0:
             if div_yield > 50:
                 div_yield = div_yield / 100.0
         else:
@@ -104,9 +104,7 @@ with tab1:
     col_input, col_param = st.columns([1, 2])
     
     with col_input:
-        # お気に入りからの選択も可能に
         selected_fav = st.selectbox("⭐ お気に入りから選択", ["（直接入力する）"] + st.session_state.favorites)
-        
         default_query = selected_fav if selected_fav != "（直接入力する）" else "7203"
         query = st.text_input("銘柄コードまたは社名を入力", value=default_query)
         chart_period = st.selectbox("分析対象期間", ["3mo", "6mo", "1y", "2y"], index=1)
@@ -121,6 +119,5 @@ with tab1:
 
     if query:
         code = query.strip()
-        # 日本株コード変換の簡易処理
-        name_map = {
-            "トヨタ": "72
+        # 社名入力時の簡易コード変換
+        
