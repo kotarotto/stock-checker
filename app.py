@@ -7,7 +7,7 @@ from plotly.subplots import make_subplots
 st.set_page_config(page_title="Stock Checker Pro", layout="wide")
 
 st.title("📈 Stock Checker Pro")
-st.caption("簡易検査キット：ファンダメンタルズ分析 × テクニカル分析")
+st.caption("簡易検査キット：ファンダメンタルズ分析 × 本格テクニカル分析 × 逆引きスクリーニング")
 
 if "favorites" not in st.session_state:
     st.session_state.favorites = ["7203", "4452", "6758", "9434"]
@@ -30,6 +30,9 @@ for fav in list(st.session_state.favorites):
 
 tab1, tab2 = st.tabs(["🔍 個別銘柄・詳細分析", "📋 逆引きスクリーニング"])
 
+# =========================================================
+# TAB 1: 個別銘柄・詳細分析
+# =========================================================
 with tab1:
     col_input, col_param = st.columns([1, 2])
     with col_input:
@@ -116,11 +119,35 @@ with tab1:
         except Exception as e:
             st.error(f"エラー: {e}")
 
+# =========================================================
+# TAB 2: 逆引きスクリーニング
+# =========================================================
 with tab2:
-    st.subheader("📋 逆引きスクリーニング")
+    st.subheader("📋 条件からの逆引きスクリーニング")
+    st.caption("条件に一致する銘柄をリストアップします。")
+
+    sc_col1, sc_col2 = st.columns(2)
+    s_per = sc_col1.number_input("スクリーニング PER上限", value=15.0, key="s_per")
+    s_yield = sc_col2.number_input("スクリーニング 配当下限(%)", value=3.0, key="s_yield")
+
     if st.button("🚀 スクリーニング実行"):
-        df = pd.DataFrame([
-            {"銘柄コード": "7203", "銘柄名": "トヨタ自動車", "市場": "東証プライム", "PER": 14.2, "PBR": 1.15, "配当": 3.2},
-            {"銘柄コード": "9434", "銘柄名": "ソフトバンク", "市場": "東証プライム", "PER": 13.5, "PBR": 4.2, "配当": 4.5}
-        ])
-        st.dataframe(df, use_container_width=True)
+        # サンプルデータベース
+        universe = [
+            {"銘柄コード": "7203", "銘柄名": "トヨタ自動車", "市場": "東証プライム", "PER": 14.2, "PBR": 1.15, "配当利回り(%)": 3.2},
+            {"銘柄コード": "9434", "銘柄名": "ソフトバンク", "市場": "東証プライム", "PER": 13.5, "PBR": 4.2, "配当利回り(%)": 4.5},
+            {"銘柄コード": "7267", "銘柄名": "本田技研工業", "市場": "東証プライム", "PER": 11.8, "PBR": 0.56, "配当利回り(%)": 3.8},
+            {"銘柄コード": "4452", "銘柄名": "花王", "市場": "東証プライム", "PER": 18.0, "PBR": 2.10, "配当利回り(%)": 3.1}
+        ]
+        
+        # 条件フィルタリング
+        filtered = [
+            item for item in universe 
+            if item["PER"] <= s_per and item["配当利回り(%)"] >= s_yield
+        ]
+
+        if filtered:
+            df = pd.DataFrame(filtered)
+            st.success(f"条件に一致する銘柄が {len(df)} 件見つかりました！")
+            st.dataframe(df, use_container_width=True)
+        else:
+            st.warning("条件に一致する銘柄はありませんでした。条件をゆるめて再実行してください。")
