@@ -9,26 +9,36 @@ def fetch_stock(row):
     name = str(row['銘柄名'])
     market = str(row.get('市場・商品区分', ''))
     
-    # 東証プライム市場などの銘柄を対象にする（必要に応じて条件を変更可能です）
-    if "プライム" in market:
-        ticker = f"{code}.T"
-        try:
-            t = yf.Ticker(ticker)
-            hist = t.history(period="2d")
+    # 4桁の通常の株式コード（銘柄コード）のみを対象にする（ETFやREITなどを除外するため）
+    if not code.isdigit() or len(code) != 4:
+        return None
+        
+    # 必要に応じて対象市場の条件を設定（例: プライム、スタンダード、グロースなど）
+    # 全てを対象にする場合は、ここの条件を外すか調整してください
+    target_markets = ["プライム", "スタンダード", "グロース"]
+    if not any(m in market for m in target_markets):
+        return None
+
+    ticker = f"{code}.T"
+    try:
+        t = yf.Ticker(ticker)
+        hist = t.history(period="2d")
+        
+        if not hist.empty:
+            current_price = round(hist['Close'].iloc[-1])
+            if len(hist) >= 2:
+                prev_price = hist['Close'].iloc[-2]
+                change_val = current_price - prev_price
+                change_str = f"+{change_val}" if change_val >= 0 else str(change_val)
+            else:
+                change_str = "0"
             
-            if not hist.empty:
-                current_price = round(hist['Close'].iloc[-1])
-                if len(hist) >= 2:
-                    prev_price = hist['Close'].iloc[-2]
-                    change_val = current_price - prev_price
-                    change_str = f"+{change_val}" if change_val >= 0 else str(change_val)
-                else:
-                    change_str = "0"
-                
-                print(f"取得成功: {name} ({code}) = {current_price}円")
-                return [code, name, current_price, change_str]
-        except Exception as ex:
-            print(f"取得エラー ({name}): {ex}")
+            print(f"取得成功: {name} ({code}) = {current_price}円")
+            return [code, name, current_price, change_str]
+    except Exception as ex:
+        # エラーは多発するためここではログを控えめにするか出力
+        pass
+        
     return None
 
 def main():
@@ -41,9 +51,8 @@ def main():
         
         updated_rows = []
         
-        # ThreadPoolExecutorを使って同時に複数のリクエストを処理（max_workersで同時接続数を指定）
+        # ThreadPoolExecutorを使って同時に複数のリクエストを処理
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-            # 全行に対して並行処理タスクを割り当て
             futures = [executor.submit(fetch_stock, row) for _, row in df_jpx.iterrows()]
             
             for future in concurrent.futures.as_completed(futures):
