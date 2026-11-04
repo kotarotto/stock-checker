@@ -1,16 +1,15 @@
 name: Update Stock Data
 
 on:
-  schedule:
-    - cron: '0 8 * * 1-5'
   workflow_dispatch:
-
-permissions:
-  contents: write
+  schedule:
+    - cron: '0 0 * * *'
 
 jobs:
   run-fetcher:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -25,10 +24,11 @@ jobs:
           pip install pandas yfinance
 
       - name: Run fetch script
-        run: |
-          python fetch_data.py
+        run: python fetch_data.py
 
-      - name: Auto commit changes
+      - name: Commit and push changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Update stock data"
+          commit_message: "Update stock_data.csv automatically"
+          file_pattern: "stock_data.csv"
+          skip_ci: true
