@@ -5,20 +5,14 @@ import yfinance as yf
 
 def fetch_stock(row):
     """1銘柄分のデータを取得する関数（並行処理用）"""
-    code = str(row['コード'])
-    name = str(row['銘柄名'])
-    market = str(row.get('市場・商品区分', ''))
+    # JPXのCSVの列名に合わせて取得
+    code = str(row.get('コード', '')).strip()
+    name = str(row.get('銘柄名', '')).strip()
     
-    # 4桁の通常の株式コード（銘柄コード）のみを対象にする（ETFやREITなどを除外するため）
+    # 4桁の通常の株式コードのみを対象にする（ETFやREITなどを除外）
     if not code.isdigit() or len(code) != 4:
         return None
         
-    # 必要に応じて対象市場の条件を設定（例: プライム、スタンダード、グロースなど）
-    # 全てを対象にする場合は、ここの条件を外すか調整してください
-    target_markets = ["プライム", "スタンダード", "グロース"]
-    if not any(m in market for m in target_markets):
-        return None
-
     ticker = f"{code}.T"
     try:
         t = yf.Ticker(ticker)
@@ -35,8 +29,7 @@ def fetch_stock(row):
             
             print(f"取得成功: {name} ({code}) = {current_price}円")
             return [code, name, current_price, change_str]
-    except Exception as ex:
-        # エラーは多発するためここではログを控えめにするか出力
+    except Exception:
         pass
         
     return None
