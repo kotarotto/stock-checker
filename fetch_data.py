@@ -4,12 +4,9 @@ import pandas as pd
 import yfinance as yf
 
 def fetch_stock(row):
-    """1銘柄分のデータを取得する関数（並行処理用）"""
-    # JPXのCSVの列名に合わせて取得
     code = str(row.get('コード', '')).strip()
     name = str(row.get('銘柄名', '')).strip()
     
-    # 4桁の通常の株式コードのみを対象にする（ETFやREITなどを除外）
     if not code.isdigit() or len(code) != 4:
         return None
         
@@ -26,8 +23,6 @@ def fetch_stock(row):
                 change_str = f"+{change_val}" if change_val >= 0 else str(change_val)
             else:
                 change_str = "0"
-            
-            print(f"取得成功: {name} ({code}) = {current_price}円")
             return [code, name, current_price, change_str]
     except Exception:
         pass
@@ -35,34 +30,33 @@ def fetch_stock(row):
     return None
 
 def main():
-    print("市場データを並行処理で高速かつ網羅的に取得します...")
-    
+    print("市場データ取得開始...")
     try:
-        # 日本取引所グループ（JPX）の公式上場銘柄一覧CSVを自動取得
         jpx_url = "https://www.jpx.co.jp/markets/statistics-equities/misc/tvqpnp0000038ye9-att/data_j.csv"
         df_jpx = pd.read_csv(jpx_url)
+        print(f"JPXから銘柄マスター取得成功: {len(df_jpx)} 行")
         
         updated_rows = []
-        
-        # ThreadPoolExecutorを使って同時に複数のリクエストを処理
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             futures = [executor.submit(fetch_stock, row) for _, row in df_jpx.iterrows()]
-            
             for future in concurrent.futures.as_completed(futures):
                 result = future.result()
                 if result:
                     updated_rows.append(result)
 
-        # 取得したデータをCSVに書き込む
-        with open('stock_data.csv', 'w', encoding='utf-8', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow(['code', 'name', 'price', 'change'])
-            writer.writerows(updated_rows)
+        print(f"有効な取得データ数: {len(updated_rows)} 件")
+
+        if len(updated_rows) > 0:
+            with open('stock_data.csv', 'w', encoding='utf-8', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(['code', 'name', 'price', 'change'])
+                writer.writerows(updated_rows)
+            print("stock_data.csv を正常に上書き保存しました。")
+        else:
+            print("警告: 取得できたデータが0件です。")
             
-        print(f"stock_data.csvの網羅的更新が完了しました。合計 {len(updated_rows)} 銘柄を保存しました。")
-        
     except Exception as e:
-        print(f"自動取得中にエラーが発生しました: {e}")
+        print(f"エラー発生: {e}")
 
 if __name__ == '__main__':
     main()
