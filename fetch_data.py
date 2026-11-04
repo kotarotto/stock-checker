@@ -12,19 +12,16 @@ def main():
         
         updated_rows = []
         
-        # ※まずは動作確認とタイムアウト防止のため、東証プライムなどの主要銘柄（または件数を絞る、あるいは全件）を処理します
-        # ここでは取得できたデータから順に株価を取得してCSV用リストを作成します
-        count = 0
+        # 市場データからコードと銘柄名を自動抽出し、yfinanceで一括取得
         for _, row in df_jpx.iterrows():
             code = str(row['コード'])
             name = str(row['銘柄名'])
             market = str(row.get('市場・商品区分', ''))
             
-            # 例として「プライム」市場などに絞るか、あるいは全件処理する場合は条件を外します
+            # 東証プライムなどの主要市場を対象にする場合（必要に応じて条件を変更可能です）
             if "プライム" in market:
                 ticker = f"{code}.T"
                 try:
-                    # yfinanceで直近のデータを取得
                     t = yf.Ticker(ticker)
                     hist = t.history(period="2d")
                     
@@ -43,12 +40,8 @@ def main():
                         print(f"データなし: {name} ({code})")
                 except Exception as ex:
                     print(f"取得エラー ({name}): {ex}")
-                
-                # テスト動作としてまずは主要な数十件で試す場合はここでbreakを入れられます
-                # count += 1
-                # if count >= 30: break
 
-        # 取得したデータを `stock_data.csv` に書き込む
+        # 取得した全データをCSVに書き込む
         with open('stock_data.csv', 'w', encoding='utf-8', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(['code', 'name', 'price', 'change'])
