@@ -1,36 +1,22 @@
 import csv
-import urllib.request
-import json
 
-# 取得したい銘柄のリスト（コードと名称）
+# 取得する銘柄のサンプルデータ
 stocks = [
-    {"code": "7203", "name": "トヨタ自動車"},
-    {"code": "9984", "name": "ソフトバンクG"},
-    {"code": "6758", "name": "ソニーグループ"},
-    {"code": "9432", "name": "ＮＴＴ"},
-    {"code": "8306", "name": "三菱ＵＦＪフィナンシャル・グループ"}
+    {"code": "7203", "name": "トヨタ自動車", "price": 2650, "change": "+15"},
+    {"code": "9984", "name": "ソフトバンクG", "price": 8500, "change": "-40"},
+    {"code": "6758", "name": "ソニーグループ", "price": 13000, "change": "+120"},
+    {"code": "9432", "name": "ＮＴＴ", "price": 160, "change": "+1"},
+    {"code": "8306", "name": "三菱ＵＦＪ", "price": 1500, "change": "+25"}
 ]
 
-# 簡単なサンプル価格データを生成してCSVに書き込むスクリプト
-# ※実際の株価取得API等に置き換えることも可能です
 def main():
-    print("株価データの更新を開始します...")
-    
-    # stock_data.csvを書き込みモードで開く
+    print("CSVファイルへの書き込みを開始します...")
     with open('stock_data.csv', 'w', encoding='utf-8', newline='') as f:
         writer = csv.writer(f)
-        # ヘッダーの書き込み
         writer.writerow(['code', 'name', 'price', 'change'])
-        
-        # 各銘柄のデータを書き込む（サンプルのため固定値または仮の計算値）
-        for i, stock in enumerate(stocks):
-            # ダミーの価格・変動値（動的に取得する場合はここにスクレイピングやAPI処理を書きます）
-            price = 1000 + (i * 500)
-            change = "+10"
-            writer.writerow([stock['code'], stock['name'], price, change])
-            
-    print("stock_data.csvの更新が完了しました。")
+        for s in stocks:
+            writer.writerow([s['code'], s['name'], s['price'], s['change']])
+    print("書き込みが完了しました。")
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
-
